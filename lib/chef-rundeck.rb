@@ -1,12 +1,12 @@
 #
 # Copyright 2010, Opscode, Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -75,13 +75,13 @@ class ChefRundeck < Sinatra::Base
           at_exit { File.delete(cache_file) if File.exist?(cache_file) }
         end
       end
-      
+
       get '/' do
         content_type 'text/xml'
         Chef::Log.info("Loading all nodes for /")
         send_file build_project
       end
-      
+
       cache_file = "#{Dir.tmpdir}/chef-rundeck-default.xml"
       at_exit { File.delete(cache_file) if File.exist?(cache_file) }
     end
@@ -92,7 +92,7 @@ class ChefRundeck < Sinatra::Base
     begin
 
       # file is too new use it again
-      if (File.exists?("#{Dir.tmpdir}/chef-rundeck-#{project}.xml") && (Time.now - File.atime("#{Dir.tmpdir}/chef-rundeck-#{project}.xml") < ChefRundeck.cache_timeout)) then 
+      if (File.exists?("#{Dir.tmpdir}/chef-rundeck-#{project}.xml") && (Time.now - File.atime("#{Dir.tmpdir}/chef-rundeck-#{project}.xml") < ChefRundeck.cache_timeout)) then
         return "#{Dir.tmpdir}/chef-rundeck-#{project}.xml"
       end
 
@@ -110,7 +110,7 @@ class ChefRundeck < Sinatra::Base
                  'platform_version' => [ 'platform_version' ],
                  'tags' => [ 'tags' ],
                  'hostname' => [hostname]
-               }  
+               }
         if !custom_attributes.nil? then
           custom_attributes.each do |attr|
           attr_name = attr.gsub('.', '_')
@@ -122,14 +122,14 @@ class ChefRundeck < Sinatra::Base
         Chef::Log.info("partial search started (project: '#{project}')")
         results = partial_search(:node,pattern, :keys => keys)
         Chef::Log.info("partial search finshed (project: '#{project}', count: #{results.length})")
-      else 
+      else
         q = Chef::Search::Query.new
         Chef::Log.info("search started (project: '#{project}')")
         results = q.search("node",pattern)[0]
         Chef::Log.info("search finshed (project: '#{project}', count: #{results.length})")
         results = convert_results(results, hostname, custom_attributes)
       end
-      
+
       response = File.open("#{Dir.tmpdir}/chef-rundeck-#{project}.xml", 'w')
       response.write '<?xml version="1.0" encoding="UTF-8"?>'
       response.write '<!DOCTYPE project PUBLIC "-//DTO Labs Inc.//DTD Resources Document 1.0//EN" "project.dtd">'
@@ -147,7 +147,7 @@ class ChefRundeck < Sinatra::Base
             failed = failed + 1
             next
           end
-          
+
           #write the node to the project
           response.write build_node(node, username, hostname, custom_attributes)
         rescue Exception => e
@@ -156,7 +156,7 @@ class ChefRundeck < Sinatra::Base
         end
       end
       Chef::Log.info("nodes complete (project: '#{project}', total: #{results.length - failed}, failed: #{failed})")
-      
+
       response.write "</project>"
       Chef::Log.debug(response)
     ensure
@@ -174,8 +174,8 @@ def build_node (node, username, hostname, custom_attributes)
       os_family = node['kernel_os'] =~ /winnt|windows/i ? 'winnt' : 'unix'
       nodeexec = node['kernel_os'] =~ /winnt|windows/i ? "node-executor=\"overthere-winrm\"" : ''
       data << <<-EOH
-<node name="#{xml_escape(node['fqdn'])}" #{nodeexec} 
-      type="Node" 
+<node name="#{xml_escape(node['fqdn'])}" #{nodeexec}
+      type="Node"
       description="#{xml_escape(node['name'])}"
       osArch="#{xml_escape(node['kernel_machine'])}"
       osFamily="#{xml_escape(os_family)}"
@@ -206,7 +206,7 @@ end
 def get_custom_attr (obj, params)
   value = obj
   Chef::Log.debug("loading custom attributes for node: #{obj['name']} with #{params}")
-  params.each do |p|   
+  params.each do |p|
     value = value[p.to_sym]
     if value.nil? then
       break
@@ -225,14 +225,14 @@ def convert_results(results, hostname, custom_attributes)
    n['run_list'] = node.run_list
    n['recipes'] = !node.run_list.nil? ? node.run_list.recipes : nil
    n['roles'] = !node.run_list.nil? ? node.run_list.roles : nil
-   n['fqdn'] = node['fqdn']
+   n['fqdn'] = !node['fqdn'].nil? ? node['fqdn'] : node.name
    n['hostname'] = get_custom_attr(node, hostname.split('.'))
    n['kernel_machine'] = !node['kernel'].nil? ? node['kernel']['machine'] : nil
    n['kernel_os'] = !node['kernel'].nil? ? node['kernel']['os'] : nil
    n['platform'] = node['platform']
    n['platform_version'] = node['platform_version']
    n['tags'] = node['tags']
-   
+
    if !custom_attributes.nil? then
      custom_attributes.each do |attr|
        ps_name = attr.gsub('.','_')
@@ -240,12 +240,12 @@ def convert_results(results, hostname, custom_attributes)
      end
    end
    new_results << n
- end 
+ end
  return new_results
 end
 
 
-# Helper def to validate the node 
+# Helper def to validate the node
 def node_is_valid?(node)
   raise ArgumentError, "#{node} missing 'name'" if !node['name']
   raise ArgumentError, "#{node} missing 'chef_environment'" if !node['chef_environment']
@@ -316,7 +316,7 @@ def partial_search(type, query='*:*', *args, &block)
   # If you pass a block, or have the start or rows arguments, do raw result parsing
   if Kernel.block_given? || args_hash[:start] || args_hash[:rows]
     PartialSearch.new.search(type, query, args_hash, &block)
- 
+
   # Otherwise, do the iteration for the end user
   else
     results = Array.new
